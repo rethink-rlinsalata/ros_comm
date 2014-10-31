@@ -560,7 +560,15 @@ class _SubscriberImpl(_TopicImpl):
         self.queue_size = None
         self.buff_size = DEFAULT_BUFF_SIZE
         self.tcp_nodelay = False
-        self.statistics_logger = SubscriberStatisticsLogger(self);
+        try:
+            if (rospy.core.is_initialized() and
+                    rospy.client.get_param("/enable_statistics", False)):
+                self.statistics_logger = SubscriberStatisticsLogger(self)
+            else:
+                self.statistics_logger = None
+        except:
+            self.statistics_logger = None
+
 
     def close(self):
         """close I/O and release resources"""
@@ -701,7 +709,8 @@ class _SubscriberImpl(_TopicImpl):
         # save reference to avoid lock
         callbacks = self.callbacks
         for msg in msgs:
-            self.statistics_logger.callback(msg, connection.callerid_pub, connection.stat_bytes)
+            if self.statistics_logger:
+                self.statistics_logger.callback(msg, connection.callerid_pub, connection.stat_bytes)
             for cb, cb_args in callbacks:
                 self._invoke_callback(msg, cb, cb_args)
 
